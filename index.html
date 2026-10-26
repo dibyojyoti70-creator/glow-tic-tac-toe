@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glow Tic-Tac-Toe</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:16px;background:radial-gradient(circle at top,#25376b,#090e20 75%);color:#fff;font-family:system-ui,sans-serif}
+.app{width:min(100%,520px);text-align:center;padding:20px;border:1px solid #ffffff20;border-radius:22px;background:#ffffff08;box-shadow:0 18px 60px #0005}
+h1{font-size:clamp(30px,7vw,44px);margin:10px 0;color:white;text-shadow:0 0 22px #6b82ff}p{color:#bdc9ef}.btn{padding:12px 16px;margin:4px;border:1px solid #536ab0;border-radius:12px;background:linear-gradient(145deg,#263969,#151e3d);color:white;font-weight:bold;cursor:pointer}.main{background:linear-gradient(120deg,#745dff,#278bff);border:0}.panel{max-width:400px;margin:12px auto;padding:14px;border:1px solid #ffffff25;border-radius:16px;background:#ffffff09}.hide{display:none!important}.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:340px;margin:18px auto}.cell{aspect-ratio:1;border-radius:13px;background:#14203f;border:1px solid #596db2;color:white;font-size:clamp(36px,10vw,58px);font-weight:900;cursor:pointer}.cell:disabled{cursor:default}.x{color:#67ddff;text-shadow:0 0 15px #67ddff}.o{color:#ff8ad6;text-shadow:0 0 15px #ff8ad6}.arena{position:relative;max-width:370px;margin:auto}.overlay{position:absolute;inset:0;background:#080d20ed;display:flex;align-items:center;justify-content:center;border-radius:16px;padding:15px}.modal{background:#1a2850;border:1px solid #7287d5;border-radius:18px;padding:20px;width:100%}.score{display:flex;justify-content:space-around;gap:6px}.score span{display:block;color:#aebfe9;font-size:12px}.score strong{font-size:23px}input{padding:10px;width:100%;margin:5px 0;border-radius:8px;border:1px solid #6073ad;background:#0d1630;color:#fff;font-size:16px}.status{font-weight:bold;min-height:28px;margin:12px}
+</style>
+</head>
+<body>
+<main class="app">
+<section id="home"><div style="font-size:46px">✕ <span style="color:#ff8ad6">○</span></div><h1>GLOW TIC-TAC-TOE</h1><p>Think smart. Win the game!</p><div class="panel"><button id="play" class="btn main">▶ PLAY NOW</button></div></section>
+<section id="setup" class="hide"><h2>Choose Your Game</h2><div class="panel"><button id="computer" class="btn main">🤖 Play with Computer</button><button id="friend" class="btn">👥 Play with Friend</button></div>
+<div id="levels" class="panel hide"><p>Choose Computer Difficulty</p><button class="btn" data-level="Easy">Easy</button><button class="btn" data-level="Medium">Medium</button><button class="btn" data-level="Hard">Hard</button></div>
+<div id="friendsetup" class="panel hide"><input id="name1" value="Player 1" maxlength="18" aria-label="Player 1 name"><input id="name2" value="Player 2" maxlength="18" aria-label="Player 2 name"><button id="startfriend" class="btn main">Start Friend Game</button></div><button id="backhome" class="btn">← Home</button></section>
+<section id="game" class="hide"><div style="display:flex;justify-content:space-between;gap:5px"><button id="homebtn" class="btn">⌂ Home</button><button id="reset" class="btn">↻ Reset</button></div><h2>TIC-TAC-TOE</h2><p id="difficultylabel">Computer · Easy</p>
+<div class="panel score"><div><span id="labelx">You (X)</span><strong id="sx">0</strong></div><div><span>Draws</span><strong id="sd">0</strong></div><div><span id="labelo">Computer (O)</span><strong id="so">0</strong></div></div><div id="status" class="status">Your turn (X)</div>
+<div class="arena"><div class="board" id="board">
+<button class="cell" data-cell="0" aria-label="Cell 1"></button><button class="cell" data-cell="1" aria-label="Cell 2"></button><button class="cell" data-cell="2" aria-label="Cell 3"></button><button class="cell" data-cell="3" aria-label="Cell 4"></button><button class="cell" data-cell="4" aria-label="Cell 5"></button><button class="cell" data-cell="5" aria-label="Cell 6"></button><button class="cell" data-cell="6" aria-label="Cell 7"></button><button class="cell" data-cell="7" aria-label="Cell 8"></button><button class="cell" data-cell="8" aria-label="Cell 9"></button></div>
+<div id="overlay" class="overlay hide"><div class="modal"><div style="font-size:42px">🏆</div><h2 id="result">You Win!</h2><p id="sub">Great game!</p><button id="again" class="btn main" style="width:100%">▶ PLAY AGAIN</button><button id="change" class="btn" style="width:100%">Change Mode</button></div></div></div><p style="font-size:12px">Three in a row wins. X goes first.</p></section>
+</main>
+<script>
+(() => {
+const $=id=>document.getElementById(id),screens=['home','setup','game'];
+let mode='computer',level='Easy',names=['You','Computer'],b=Array(9).fill(''),turn='X',ended=false,winLine=[],score={X:0,O:0,D:0},busy=false;
+const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function show(id){screens.forEach(s=>$(s).classList.toggle('hide',s!==id))}
+function beep(f=500){try{let c=new(window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.frequency.value=f;g.gain.value=.035;o.connect(g);g.connect(c.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.13);o.stop(c.currentTime+.14);o.onended=()=>c.close()}catch(e){}}
+function getWin(a=b){for(const l of lines)if(a[l[0]]&&a[l[0]]===a[l[1]]&&a[l[0]]===a[l[2]])return{mark:a[l[0]],line:l};return null}
+function render(){document.querySelectorAll('[data-cell]').forEach((el,i)=>{el.textContent=b[i];el.classList.toggle('x',b[i]==='X');el.classList.toggle('o',b[i]==='O');el.style.boxShadow=winLine.includes(i)?'0 0 20px #8e82ff':'none';el.disabled=ended||busy||!!b[i]||(mode==='computer'&&turn==='O')});$('status').textContent=ended?'Round finished':busy?'Computer is thinking…':(turn==='X'?names[0]:names[1])+"'s turn";$('sx').textContent=score.X;$('so').textContent=score.O;$('sd').textContent=score.D;$('labelx').textContent=names[0]+' (X)';$('labelo').textContent=names[1]+' (O)';$('difficultylabel').textContent=mode==='computer'?'Computer · '+level:'Two Players · Same Device'}
+function finish(mark,line=[]){ended=true;busy=false;winLine=line;if(mark)score[mark]++;else score.D++;render();$('result').textContent=mark?(mark==='X'?names[0]:names[1])+' Wins!':"It's a Draw!";$('sub').textContent=mark?'Three in a row!':'Well played!';$('overlay').classList.remove('hide');beep(mark?780:350)}
+function round(){b=Array(9).fill('');turn='X';ended=false;busy=false;winLine=[];$('overlay').classList.add('hide');render()}
+function makeMove(i){if(ended||busy||b[i])return;b[i]=turn;beep(turn==='X'?540:680);let w=getWin();if(w){finish(w.mark,w.line);return}if(b.every(Boolean)){finish(null);return}turn=turn==='X'?'O':'X';render();if(mode==='computer'&&turn==='O'){busy=true;render();setTimeout(computerMove,400)}}
+function minimax(a,isMax){let w=getWin(a);if(w)return w.mark==='O'?10:-10;if(a.every(Boolean))return 0;let best=isMax?-Infinity:Infinity;for(let i=0;i<9;i++)if(!a[i]){a[i]=isMax?'O':'X';let s=minimax(a,!isMax);a[i]='';best=isMax?Math.max(best,s):Math.min(best,s)}return best}
+function computerMove(){if(ended||mode!=='computer'||turn!=='O')return;let empty=b.map((v,i)=>v?null:i).filter(i=>i!==null);if(!empty.length){busy=false;finish(null);return}let pick;
+if(level==='Easy')pick=empty[Math.floor(Math.random()*empty.length)];
+else if(level==='Medium'){let winO=empty.find(i=>{b[i]='O';let yes=!!getWin();b[i]='';return yes}),winX=empty.find(i=>{b[i]='X';let yes=!!getWin();b[i]='';return yes});pick=winO??winX??(Math.random()<.35?empty[Math.floor(Math.random()*empty.length)]:undefined)}
+if(level==='Hard'||pick===undefined){let best=-Infinity;for(let i of empty){b[i]='O';let s=minimax(b,false);b[i]='';if(s>best){best=s;pick=i}}}
+if(pick===undefined)pick=empty[0];busy=false;b[pick]='O';beep(680);let w=getWin();if(w){finish(w.mark,w.line);return}if(b.every(Boolean)){finish(null);return}turn='X';render()}
+$('play').onclick=()=>{show('setup');beep()};
+$('computer').onclick=()=>{$('levels').classList.remove('hide');$('friendsetup').classList.add('hide')};
+$('friend').onclick=()=>{$('friendsetup').classList.remove('hide');$('levels').classList.add('hide')};
+document.querySelectorAll('[data-level]').forEach(el=>el.onclick=()=>{level=el.dataset.level;mode='computer';names=['You','Computer'];score={X:0,O:0,D:0};round();show('game')});
+$('startfriend').onclick=()=>{mode='friend';names=[$('name1').value.trim()||'Player 1',$('name2').value.trim()||'Player 2'];score={X:0,O:0,D:0};round();show('game')};
+document.querySelectorAll('[data-cell]').forEach(el=>el.onclick=()=>makeMove(Number(el.dataset.cell)));
+$('again').onclick=()=>{$('overlay').classList.add('hide');round();beep(650)};
+$('reset').onclick=()=>round();$('homebtn').onclick=()=>show('home');$('backhome').onclick=()=>show('home');$('change').onclick=()=>{$('overlay').classList.add('hide');show('setup')};
+})();
+</script>
+</body>
+</html>
